@@ -16,7 +16,6 @@ class exportData:
         def __export(self, rawData, fileType, outputName):
             os.mkdir(dotEnv.EXPORT_FOLDER) if not os.path.exists(dotEnv.EXPORT_FOLDER) else True
             fileType = fileType.lower()
-            correctFormat = True
             if(fileType == "csv"):
                 pd.DataFrame(rawData).to_csv("{}/{}.{}".format(dotEnv.EXPORT_FOLDER, outputName, fileType))
             elif(fileType == "xls"):
@@ -27,7 +26,6 @@ class exportData:
                 pd.DataFrame(rawData).to_html("{}/{}.{}".format(dotEnv.EXPORT_FOLDER, outputName, fileType))
             else:
                 print(rawData)
-                correctFormat = False
             print("Export successfull at {}/{}.{}".format(dotEnv.EXPORT_FOLDER, outputName, fileType)) if correctFormat else True
 
         def __getNestedParam(self, result, paramString):
