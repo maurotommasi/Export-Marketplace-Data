@@ -1,13 +1,17 @@
 import sys
 from classes.exportData import exportData
 from classes.loader import Loader
-## Load providers
 
-moralisProvider = exportData.Moralis()
+# Load Utilities
+
 loader = Loader()
 
-## Main
-# python main.py <provider> <function> <param1> <param2> ... <paramN>
+# Load providers
+
+moralisProvider = exportData.Moralis()
+
+# Main
+## python main.py <provider> <function> <param1> <param2> ... <paramN>
 
 if __name__ == "__main__":
     loader.start()
