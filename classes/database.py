@@ -10,21 +10,18 @@ class MYSQL:
     def __init__(self) -> None:
         pass
     
-    def read(self, query):    
+    def __select(self, query):   
         try:
             connection = mysql.connector.connect(host=dotEnv.DATABASE_HOST,
                                                 database=dotEnv.DATABASE_NAME,
                                                 user=dotEnv.DATABASE_USERNAME,
                                                 password=dotEnv.DATABASE_PASSWORD)
-            print(connection)
             if connection.is_connected():
-                db_Info = connection.get_server_info()
-                print("Connected to MySQL Server version ", db_Info)
                 cursor = connection.cursor()
                 cursor.execute(query)
+                columns = [column[0] for column in cursor.description]
+                print(columns)
                 tableRows = cursor.fetchall()
-                print("Query Executed")
-                
         except Error as e:
             print("Error while connecting to MySQL", e)
             return None
@@ -32,21 +29,24 @@ class MYSQL:
             if connection.is_connected():
                 cursor.close()
                 connection.close()
-                print("MySQL connection is closed")
-                return pd.DataFrame(tableRows)
-            
-    def write(self, query):
+        return pd.DataFrame(tableRows, columns=columns)
+    
+    def __insert(self, tableName, df):    
         try:
             connection = mysql.connector.connect(host=dotEnv.DATABASE_HOST,
                                                 database=dotEnv.DATABASE_NAME,
                                                 user=dotEnv.DATABASE_USERNAME,
                                                 password=dotEnv.DATABASE_PASSWORD)
             if connection.is_connected():
-                db_Info = connection.get_server_info()
-                print("Connected to MySQL Server version ", db_Info)
+                print("Connected")
+                data = [tuple(x) for x in df.values]
                 cursor = connection.cursor()
-                cursor.execute(query)
-                print("Query Executed")
+                self.__tableCheckAndInsert(tableName, df)
+                sql = "INSERT INTO {}({}) VALUES ({})".format(tableName, 
+                                                              self.__getColumnsStringFromDataframe(df),
+                                                              (",%s" * len(df.columns))[1:])
+                cursor.executemany(sql, data)
+                connection.commit()
         except Error as e:
             print("Error while connecting to MySQL", e)
             return None
@@ -54,5 +54,50 @@ class MYSQL:
             if connection.is_connected():
                 cursor.close()
                 connection.close()
-                print("MySQL connection is closed")
                 return True
+                  
+    def __execute(self, query):
+        try:
+            connection = mysql.connector.connect(host=dotEnv.DATABASE_HOST,
+                                                database=dotEnv.DATABASE_NAME,
+                                                user=dotEnv.DATABASE_USERNAME,
+                                                password=dotEnv.DATABASE_PASSWORD)
+            if connection.is_connected():
+                cursor = connection.cursor()
+                cursor.execute(query)
+                connection.commit()
+        except Error as e:
+            print("Error while connecting to MySQL", e)
+            return None
+        finally:
+            if connection.is_connected():
+                cursor.close()
+                connection.close()
+                return True
+    
+    def __getColumnsStringFromDataframe(self, df):
+        return ",".join(df.columns)
+    
+    def __getColumnsStringToCreateTable(self, df):
+        finalString = ""
+        for col in df.columns:
+            finalString = finalString + " " + col + " varchar(" + str(df[col].astype(str).str.len().max()) + "),"
+        return finalString[:-1]
+    
+    def __tableCheckAndInsert(self, tableName, df):
+        sqlCheckTable = "SELECT table_name FROM information_schema.tables where table_name = '{}'".format(tableName)
+        sqlNewTable = "CREATE TABLE {} ( {} ) ;".format(tableName, self.__getColumnsStringToCreateTable(df))
+        self.__execute(sqlNewTable) if len(self.__select(sqlCheckTable)) == 0 else print("Table {} already exists".format(tableName))
+        return True
+               
+    def select(self, query):
+        return self.__select(query)
+    
+    def insert(self, tableName, df):
+        return self.__insert(tableName, df)
+    
+    def execute(self, query):
+        return self.__execute(query)
+        
+    def createTableFromDataFrame(self, tableName, df):
+        return self.__tableCheckAndInsert(tableName, df)
