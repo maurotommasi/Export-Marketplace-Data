@@ -76,20 +76,26 @@ class MYSQL:
                 return True
     
     def __getColumnsStringFromDataframe(self, df):
-        return ",".join(df.columns)
+        finalString = ""
+        for col in df.columns:
+            finalString = finalString + " `" + col + "`,"
+        return finalString[:-1]
     
     def __getColumnsStringToCreateTable(self, df):
         finalString = ""
         for col in df.columns:
-            finalString = finalString + " " + col + " varchar(" + str(df[col].astype(str).str.len().max()) + "),"
+            finalString = finalString + " `" + col + "` varchar(" + str(df[col].astype(str).str.len().max()) + "),"
         return finalString[:-1]
     
     def __tableCheckAndInsert(self, tableName, df):
         sqlCheckTable = "SELECT table_name FROM information_schema.tables where table_name = '{}'".format(tableName)
-        sqlNewTable = "CREATE TABLE {} ( {} ) ;".format(tableName, self.__getColumnsStringToCreateTable(df))
-        self.__execute(sqlNewTable) if len(self.__select(sqlCheckTable)) == 0 else print("Table {} already exists".format(tableName))
+        if len(self.__select(sqlCheckTable)) == 0:
+            sqlNewTable = "CREATE TABLE {} ( {} ) ;".format(tableName, self.__getColumnsStringToCreateTable(df))
+            sqlAddUnique = "ALTER IGNORE TABLE {} ADD UNIQUE ({}):".format(tableName, self.__getColumnsStringFromDataframe(df))
+            self.__execute(sqlNewTable) 
+            self.__execute(sqlAddUnique)
         return True
-               
+      
     def select(self, query):
         return self.__select(query)
     

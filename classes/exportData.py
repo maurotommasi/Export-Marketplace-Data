@@ -2,6 +2,7 @@ import pandas as pd
 import os
 from moralis import evm_api
 from classes.dotenv import dotEnv
+from classes.database import MYSQL
 
 class exportData:
 
@@ -14,6 +15,7 @@ class exportData:
             pass
 
         def __export(self, rawData, fileType, outputName):
+            
             os.mkdir(dotEnv.EXPORT_FOLDER) if not os.path.exists(dotEnv.EXPORT_FOLDER) else True
             fileType = fileType.lower()
             if(fileType == "csv"):
@@ -24,6 +26,8 @@ class exportData:
                 pd.DataFrame(rawData).to_xml("{}/{}.{}".format(dotEnv.EXPORT_FOLDER, outputName, fileType))
             elif(fileType == "html"):
                 pd.DataFrame(rawData).to_html("{}/{}.{}".format(dotEnv.EXPORT_FOLDER, outputName, fileType))
+            elif(fileType == "mysql"):
+                MYSQL().insert(outputName, pd.DataFrame(rawData))
             else:
                 print(rawData)
             print("Export successfull at {}/{}.{}".format(dotEnv.EXPORT_FOLDER, outputName, fileType)) if correctFormat else True
